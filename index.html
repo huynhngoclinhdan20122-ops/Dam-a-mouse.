@@ -1,1 +1,390 @@
-index.html [generated with web_code_canvas tool]
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Đập Chuột - Whack A Mole</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        .custom-cursor {
+            cursor: crosshair;
+        }
+        .hammer-active {
+            transform: rotate(-45deg) scale(0.9);
+        }
+        .dirt-mound {
+            background: linear-gradient(180deg, #8B4513 0%, #5c2c09 100%);
+            box-shadow: inset 0 4px 6px rgba(0,0,0,0.4);
+        }
+        .hole-rim {
+            background: #3a1700;
+            box-shadow: inset 0 8px 12px rgba(0,0,0,0.8);
+        }
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-40px); }
+        }
+        .float-text {
+            animation: floatUp 0.8s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-white font-sans min-h-screen flex flex-col justify-between items-center p-2 sm:p-4 custom-cursor overflow-x-hidden">
+
+    <!-- Header Section -->
+    <header class="w-full max-w-2xl flex flex-col items-center gap-2 mt-1">
+        <h1 class="text-3xl sm:text-5xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 drop-shadow-md text-center">
+            ĐẬP CHUỘT 🔨
+        </h1>
+        
+        <!-- Stats Bar -->
+        <div class="w-full bg-slate-800/80 backdrop-blur border border-slate-700 rounded-2xl p-3 flex justify-around items-center shadow-lg">
+            <div class="flex flex-col items-center">
+                <span class="text-xs text-slate-400 uppercase tracking-widest font-bold">Điểm</span>
+                <span id="score-display" class="text-2xl sm:text-3xl font-extrabold text-yellow-400">0</span>
+            </div>
+            <div class="h-8 w-px bg-slate-700"></div>
+            <div class="flex flex-col items-center">
+                <span class="text-xs text-slate-400 uppercase tracking-widest font-bold">Thời gian</span>
+                <span id="time-display" class="text-2xl sm:text-3xl font-extrabold text-emerald-400">30s</span>
+            </div>
+            <div class="h-8 w-px bg-slate-700"></div>
+            <div class="flex flex-col items-center">
+                <span class="text-xs text-slate-400 uppercase tracking-widest font-bold">Kỷ lục</span>
+                <span id="highscore-display" class="text-2xl sm:text-3xl font-extrabold text-purple-400">0</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Game Board -->
+    <main class="w-full max-w-lg my-auto py-4">
+        <div id="grid-container" class="grid grid-cols-3 gap-3 sm:gap-4 bg-slate-800/50 p-3 sm:p-4 rounded-3xl border border-slate-700/50 shadow-2xl relative">
+            <!-- 9 Holes generated dynamically by JS -->
+        </div>
+    </main>
+
+    <!-- Controls & Difficulty Footer -->
+    <footer class="w-full max-w-2xl flex flex-col items-center gap-3 mb-2">
+        <div class="flex items-center gap-2">
+            <span class="text-xs text-slate-400 font-semibold">Chế độ:</span>
+            <span id="current-mode-badge" class="px-3 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full text-xs font-bold uppercase tracking-wider">Dễ</span>
+        </div>
+        <div class="flex gap-2 w-full justify-center">
+            <button id="btn-start" onclick="startGame()" class="w-full sm:w-auto px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 active:scale-95 text-white font-extrabold text-lg rounded-xl shadow-lg transition-all duration-150 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-play"></i> BẮT ĐẦU
+            </button>
+            <button onclick="openDifficultyModal()" class="px-4 py-3 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 font-bold rounded-xl border border-slate-700 transition-all flex items-center justify-center">
+                <i class="fa-solid fa-gear text-lg"></i>
+            </button>
+        </div>
+    </footer>
+
+    <!-- Difficulty Selection Modal -->
+    <div id="difficulty-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-800 border border-slate-700 rounded-3xl p-6 w-full max-w-sm flex flex-col gap-4 shadow-2xl">
+            <h2 class="text-xl font-bold text-center text-white">Chọn Mức Độ Khó</h2>
+            
+            <button onclick="setDifficulty('easy')" class="p-4 bg-slate-700/50 hover:bg-emerald-600/20 border border-slate-600 hover:border-emerald-500 rounded-2xl flex flex-col gap-1 transition text-left group">
+                <div class="flex justify-between items-center w-full">
+                    <span class="font-bold text-emerald-400 text-lg">🟢 DỄ</span>
+                    <span class="text-xs text-slate-400">Tốc độ chậm</span>
+                </div>
+                <p class="text-xs text-slate-300">Chỉ có chuột thường (+10đ). Thời gian 30s.</p>
+            </button>
+
+            <button onclick="setDifficulty('medium')" class="p-4 bg-slate-700/50 hover:bg-yellow-600/20 border border-slate-600 hover:border-yellow-500 rounded-2xl flex flex-col gap-1 transition text-left group">
+                <div class="flex justify-between items-center w-full">
+                    <span class="font-bold text-yellow-400 text-lg">🟡 TRUNG BÌNH</span>
+                    <span class="text-xs text-slate-400">Tốc độ vừa</span>
+                </div>
+                <p class="text-xs text-slate-300">Xuất hiện Bom (-20đ). Thời gian 30s.</p>
+            </button>
+
+            <button onclick="setDifficulty('hard')" class="p-4 bg-slate-700/50 hover:bg-red-600/20 border border-slate-600 hover:border-red-500 rounded-2xl flex flex-col gap-1 transition text-left group">
+                <div class="flex justify-between items-center w-full">
+                    <span class="font-bold text-red-400 text-lg">🔴 SIÊU KHÓ</span>
+                    <span class="text-xs text-slate-400">Tốc độ cực nhanh</span>
+                </div>
+                <p class="text-xs text-slate-300">Chuột Vàng (+30đ) & Bom (-20đ). Thời gian 25s.</p>
+            </button>
+
+            <button onclick="closeDifficultyModal()" class="mt-2 py-2 text-slate-400 hover:text-white text-sm font-semibold text-center">
+                Đóng
+            </button>
+        </div>
+    </div>
+
+    <!-- Game Over Modal -->
+    <div id="gameover-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-800 border border-slate-700 rounded-3xl p-6 w-full max-w-sm flex flex-col items-center gap-4 text-center shadow-2xl">
+            <div class="w-16 h-16 bg-yellow-500/20 text-yellow-400 rounded-full flex items-center justify-center text-3xl mb-1">
+                🏆
+            </div>
+            <h2 class="text-2xl font-black text-white">HẾT GIỜ!</h2>
+            <div class="flex flex-col gap-1">
+                <span class="text-sm text-slate-400">Điểm số của bạn</span>
+                <span id="final-score" class="text-4xl font-extrabold text-yellow-400">0</span>
+            </div>
+            <p id="new-record-msg" class="text-xs font-bold text-emerald-400 hidden">🎉 KỶ LỤC MỚI!</p>
+            <button onclick="closeGameOverModal(); startGame();" class="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold rounded-xl shadow-lg hover:opacity-90 active:scale-95 transition">
+                Chơi Bàn Mới
+            </button>
+        </div>
+    </div>
+
+    <!-- Floating Text Layer -->
+    <div id="float-text-layer" class="pointer-events-none fixed inset-0 z-40"></div>
+
+    <script>
+        // Game Configuration & State
+        const CONFIG = {
+            easy: { name: 'Dễ', badgeColor: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30', duration: 30, speedMin: 900, speedMax: 1300, goldChance: 0, bombChance: 0 },
+            medium: { name: 'Trung Bình', badgeColor: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', duration: 30, speedMin: 650, speedMax: 950, goldChance: 0.15, bombChance: 0.2 },
+            hard: { name: 'Siêu Khó', badgeColor: 'bg-red-500/20 text-red-400 border-red-500/30', duration: 25, speedMin: 400, speedMax: 650, goldChance: 0.25, bombChance: 0.35 }
+        };
+
+        let currentDifficulty = 'easy';
+        let score = 0;
+        let timeLeft = 30;
+        let gameInterval = null;
+        let moleTimer = null;
+        let isPlaying = false;
+        let lastHole = -1;
+
+        // SVGs for Characters
+        const SVG_MOLE = `<svg class="w-full h-full drop-shadow-lg pointer-events-none" viewBox="0 0 100 100">
+            <ellipse cx="50" cy="55" rx="35" ry="40" fill="#8D5B4C"/>
+            <ellipse cx="50" cy="65" rx="22" ry="25" fill="#D7B19D"/>
+            <circle cx="38" cy="42" r="5" fill="#000"/><circle cx="62" cy="42" r="5" fill="#000"/>
+            <circle cx="40" cy="40" r="1.5" fill="#FFF"/><circle cx="64" cy="40" r="1.5" fill="#FFF"/>
+            <ellipse cx="50" cy="50" rx="7" ry="5" fill="#FF8A8A"/>
+            <ellipse cx="50" cy="72" rx="10" ry="4" fill="#8D5B4C"/>
+        </svg>`;
+
+        const SVG_GOLD_MOLE = `<svg class="w-full h-full drop-shadow-lg pointer-events-none" viewBox="0 0 100 100">
+            <ellipse cx="50" cy="55" rx="35" ry="40" fill="#FFD700"/>
+            <ellipse cx="50" cy="65" rx="22" ry="25" fill="#FFF8DC"/>
+            <circle cx="38" cy="42" r="5" fill="#000"/><circle cx="62" cy="42" r="5" fill="#000"/>
+            <circle cx="40" cy="40" r="2" fill="#FFF"/><circle cx="64" cy="40" r="2" fill="#FFF"/>
+            <ellipse cx="50" cy="50" rx="7" ry="5" fill="#FF4500"/>
+            <polygon points="50,15 55,28 68,28 57,35 61,48 50,40 39,48 43,35 32,28 45,28" fill="#FFD700" stroke="#B8860B" stroke-width="2"/>
+        </svg>`;
+
+        const SVG_BOMB = `<svg class="w-full h-full drop-shadow-lg pointer-events-none" viewBox="0 0 100 100">
+            <circle cx="50" cy="60" r="30" fill="#222"/>
+            <circle cx="40" cy="50" r="5" fill="#555"/>
+            <path d="M50 30 Q 55 15, 65 20" stroke="#8B4513" stroke-width="4" fill="none"/>
+            <circle cx="65" cy="20" r="4" fill="#FF4500"/>
+            <text x="50" y="68" font-size="20" font-weight="bold" fill="#FF3333" text-anchor="middle">💣</text>
+        </svg>`;
+
+        // Audio Effects (Web Audio API)
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'hit') {
+                osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+            } else if (type === 'gold') {
+                osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+            } else if (type === 'bomb') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(40, audioCtx.currentTime + 0.3);
+                gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+            }
+        }
+
+        // Initialize Board
+        const gridContainer = document.getElementById('grid-container');
+        const scoreDisplay = document.getElementById('score-display');
+        const timeDisplay = document.getElementById('time-display');
+        const highscoreDisplay = document.getElementById('highscore-display');
+        const currentModeBadge = document.getElementById('current-mode-badge');
+
+        function buildBoard() {
+            gridContainer.innerHTML = '';
+            for (let i = 0; i < 9; i++) {
+                const holeWrapper = document.createElement('div');
+                holeWrapper.className = 'hole-container relative flex flex-col items-center justify-end h-28 sm:h-36 overflow-hidden rounded-3xl';
+                holeWrapper.innerHTML = `
+                    <div class="hole-rim absolute bottom-0 w-11/12 h-3/5 z-0"></div>
+                    <div id="hole-${i}" class="character absolute bottom-2 z-10 w-20 h-20 sm:w-28 sm:h-28 flex items-center justify-center cursor-pointer transition-transform duration-150 translate-y-full" onclick="whack(${i})"></div>
+                    <div class="dirt-mound absolute bottom-0 w-full h-2/5 z-20 rounded-b-3xl pointer-events-none"></div>
+                `;
+                gridContainer.appendChild(holeWrapper);
+            }
+        }
+
+        function updateHighScoreDisplay() {
+            const hs = localStorage.getItem(`whack_hs_${currentDifficulty}`) || 0;
+            highscoreDisplay.textContent = hs;
+        }
+
+        function setDifficulty(level) {
+            currentDifficulty = level;
+            const conf = CONFIG[level];
+            currentModeBadge.textContent = conf.name;
+            currentModeBadge.className = `px-3 py-1 border rounded-full text-xs font-bold uppercase tracking-wider ${conf.badgeColor}`;
+            updateHighScoreDisplay();
+            closeDifficultyModal();
+            if (isPlaying) stopGame();
+            timeDisplay.textContent = `${conf.duration}s`;
+        }
+
+        function getRandomHole() {
+            let hole;
+            do {
+                hole = Math.floor(Math.random() * 9);
+            } while (hole === lastHole);
+            lastHole = hole;
+            return hole;
+        }
+
+        function popMole() {
+            if (!isPlaying) return;
+            const holeIdx = getRandomHole();
+            const characterEl = document.getElementById(`hole-${holeIdx}`);
+            const conf = CONFIG[currentDifficulty];
+
+            const rand = Math.random();
+            let type = 'mole';
+            if (rand < conf.bombChance) type = 'bomb';
+            else if (rand < conf.bombChance + conf.goldChance) type = 'gold';
+
+            characterEl.dataset.type = type;
+            if (type === 'mole') characterEl.innerHTML = SVG_MOLE;
+            else if (type === 'gold') characterEl.innerHTML = SVG_GOLD_MOLE;
+            else if (type === 'bomb') characterEl.innerHTML = SVG_BOMB;
+
+            characterEl.classList.remove('translate-y-full');
+
+            const speed = Math.random() * (conf.speedMax - conf.speedMin) + conf.speedMin;
+            moleTimer = setTimeout(() => {
+                characterEl.classList.add('translate-y-full');
+                if (isPlaying) popMole();
+            }, speed);
+        }
+
+        function whack(index) {
+            if (!isPlaying) return;
+            const characterEl = document.getElementById(`hole-${index}`);
+            if (characterEl.classList.contains('translate-y-full')) return;
+
+            const type = characterEl.dataset.type;
+            const rect = characterEl.getBoundingClientRect();
+
+            characterEl.classList.add('translate-y-full');
+
+            if (type === 'mole') {
+                score += 10;
+                playSound('hit');
+                showFloatingText(rect.left + rect.width / 2, rect.top, '+10', 'text-yellow-400');
+            } else if (type === 'gold') {
+                score += 30;
+                playSound('gold');
+                showFloatingText(rect.left + rect.width / 2, rect.top, '+30 🌟', 'text-amber-300');
+            } else if (type === 'bomb') {
+                score = Math.max(0, score - 20);
+                playSound('bomb');
+                showFloatingText(rect.left + rect.width / 2, rect.top, '-20 💣', 'text-red-500');
+            }
+
+            scoreDisplay.textContent = score;
+        }
+
+        function showFloatingText(x, y, text, colorClass) {
+            const layer = document.getElementById('float-text-layer');
+            const el = document.createElement('div');
+            el.className = `fixed font-black text-xl sm:text-2xl float-text ${colorClass}`;
+            el.style.left = `${x - 20}px`;
+            el.style.top = `${y - 10}px`;
+            el.textContent = text;
+            layer.appendChild(el);
+            setTimeout(() => el.remove(), 800);
+        }
+
+        function startGame() {
+            if (isPlaying) return;
+            isPlaying = true;
+            score = 0;
+            const conf = CONFIG[currentDifficulty];
+            timeLeft = conf.duration;
+
+            scoreDisplay.textContent = '0';
+            timeDisplay.textContent = `${timeLeft}s`;
+            document.getElementById('btn-start').disabled = true;
+            document.getElementById('btn-start').classList.add('opacity-50', 'cursor-not-allowed');
+
+            gameInterval = setInterval(() => {
+                timeLeft--;
+                timeDisplay.textContent = `${timeLeft}s`;
+                if (timeLeft <= 0) endGame();
+            }, 1000);
+
+            popMole();
+        }
+
+        function stopGame() {
+            isPlaying = false;
+            clearInterval(gameInterval);
+            clearTimeout(moleTimer);
+            document.querySelectorAll('.character').forEach(el => el.classList.add('translate-y-full'));
+            document.getElementById('btn-start').disabled = false;
+            document.getElementById('btn-start').classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+
+        function endGame() {
+            stopGame();
+            const currentHs = parseInt(localStorage.getItem(`whack_hs_${currentDifficulty}`) || '0');
+            const newRecordMsg = document.getElementById('new-record-msg');
+
+            if (score > currentHs) {
+                localStorage.setItem(`whack_hs_${currentDifficulty}`, score);
+                updateHighScoreDisplay();
+                newRecordMsg.classList.remove('hidden');
+            } else {
+                newRecordMsg.classList.add('hidden');
+            }
+
+            document.getElementById('final-score').textContent = score;
+            document.getElementById('gameover-modal').classList.remove('hidden');
+        }
+
+        function openDifficultyModal() {
+            if (isPlaying) stopGame();
+            document.getElementById('difficulty-modal').classList.remove('hidden');
+        }
+        function closeDifficultyModal() {
+            document.getElementById('difficulty-modal').classList.add('hidden');
+        }
+        function closeGameOverModal() {
+            document.getElementById('gameover-modal').classList.add('hidden');
+        }
+
+        // Init
+        buildBoard();
+        updateHighScoreDisplay();
+    </script>
+</body>
+</html>
